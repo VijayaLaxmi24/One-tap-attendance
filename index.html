@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+
+    <meta name="description" content="Smart Attendance System using QR code and OCR to streamline student check-ins with speed and accuracy." />
+    <meta name="keywords" content="QR Code, OCR, Attendance System, Student ID Scan, Smart Attendance" />
+    <meta name="author" content="Your Name or University" />
+
+    <meta property="og:title" content="Smart Attendance System" />
+    <meta property="og:description" content="Scan student IDs via QR code or text to quickly log attendance." />
+    <meta property="og:image" content="image.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://yourwebsite.com" />
+
+
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://cdn.rawgit.com; style-src 'self' https://cdnjs.cloudflare.com;" />
+
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <title>QR Code and Text Scanner</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="image.png" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+    />
+  </head>
+
+  <body>
+    <header>
+      <h1>
+        Smart Attendance
+        <i class="fa-solid fa-clipboard-user large-icon"></i>
+      </h1>
+    </header>
+
+    <main>
+      <section class="attendance-container">
+        <h2 class="green-text">
+          Scan Your ID <i class="fa-solid fa-id-card"></i>
+        </h2>
+
+        <div id="qr-reader" class="qr-scanner"></div>
+        <br />
+        <p class="green-text" id="result">Waiting for ID scan...</p>
+        <button id="ocr-button" class="submit-btn">Scan Text</button>
+        <input type="file" id="image-input" accept="image/*" class="hidden-input" />
+        <p id="ocr-result" class="green-text"></p>
+      </section>
+    </main>
+
+    <footer>
+      <p>&copy; Attendance System</p>
+    </footer>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.rawgit.com/naptha/tesseract.js/0.2.0/tesseract.min.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const qrResult = document.getElementById("result");
+        const ocrResult = document.getElementById("ocr-result");
+        const imageInput = document.getElementById("image-input");
+        const ocrButton = document.getElementById("ocr-button");
+
+        if (typeof Html5Qrcode === "undefined") {
+          qrResult.innerHTML = "QR code scanner not initialized.";
+          return;
+        }
+
+        const html5QrCode = new Html5Qrcode("qr-reader");
+
+        const qrCodeSuccessCallback = (decodedText) => {
+          qrResult.innerHTML = `Scanned ID: ${decodedText}`;
+          html5QrCode
+            .stop()
+            .then(() => console.log("QR Code scanning stopped."))
+            .catch((err) => console.error("Error stopping QR scanner:", err));
+        };
+
+        const qrCodeErrorCallback = (errorMessage) => {
+          console.log(`QR Code scan error: ${errorMessage}`);
+        };
+
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        };
+
+        html5QrCode
+          .start(
+            { facingMode: { exact: "environment" } },
+            config,
+            qrCodeSuccessCallback,
+            qrCodeErrorCallback
+          )
+          .catch(() => {
+            html5QrCode
+              .start(
+                { facingMode: "user" },
+                config,
+                qrCodeSuccessCallback,
+                qrCodeErrorCallback
+              )
+              .catch((err) => {
+                qrResult.innerHTML = `Error starting QR scanner: ${err}`;
+              });
+          });
+
+        ocrButton.addEventListener("click", function () {
+          imageInput.click();
+        });
+
+        imageInput.addEventListener("change", function (event) {
+          const file = event.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const img = new Image();
+              img.src = e.target.result;
+              img.onload = function () {
+                Tesseract.recognize(img.src, "eng")
+                  .then(({ data: { text } }) => {
+                    ocrResult.innerHTML = `Recognized Text: ${text}`;
+                  })
+                  .catch((err) => {
+                    ocrResult.innerHTML = `OCR Error: ${err.message}`;
+                  });
+              };
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
+
